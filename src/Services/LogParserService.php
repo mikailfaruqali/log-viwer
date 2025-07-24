@@ -13,8 +13,7 @@ class LogParserService
 
     public function __construct(
         protected LogFileService $logFileService
-    ) {
-    }
+    ) {}
 
     public function parseLogFile(string $filename): Collection
     {
@@ -64,7 +63,7 @@ class LogParserService
 
     protected function isStackTraceLine(string $line): bool
     {
-        return !in_array(trim($line), ['', '0'], TRUE);
+        return ! in_array(trim($line), ['', '0'], TRUE);
     }
 
     protected function parseLogEntryHeader(string $line): array
@@ -74,7 +73,7 @@ class LogParserService
         return [
             'timestamp' => $matches[1] ?? '',
             'environment' => $matches[2] ?? self::DEFAULT_ENVIRONMENT,
-            'level' => strtolower($matches[3] ?? 'info'),
+            'level' => mb_strtolower($matches[3] ?? 'info'),
             'message' => $matches[4] ?? '',
             'extra' => '',
         ];

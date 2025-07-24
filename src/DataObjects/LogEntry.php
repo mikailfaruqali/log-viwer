@@ -10,8 +10,7 @@ class LogEntry
         public readonly string $level,
         public readonly string $message,
         public readonly string $extra = ''
-    ) {
-    }
+    ) {}
 
     public function hasStackTrace(): bool
     {

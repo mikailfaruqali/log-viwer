@@ -3,8 +3,7 @@
 namespace Snawbar\LogViewer\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Snawbar\LogViewer\Services\LogFileService;
+use Illuminate\Support\Facades\File;
 
 class DeleteLogFileRequest extends FormRequest
 {
@@ -20,11 +19,11 @@ class DeleteLogFileRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[a-zA-Z0-9\-_.]+\.log$/',
-                Rule::exists('log_files')->where(function ($query) {
-                    $logFileService = app(LogFileService::class);
-                    return $logFileService->logFileExists($this->input('file'));
-                }),
+                function ($attribute, $value, $fail) {
+                    if (! File::exists(storage_path('logs/' . $value))) {
+                        $fail("The selected log file does not exist.");
+                    }
+                },
             ],
         ];
     }

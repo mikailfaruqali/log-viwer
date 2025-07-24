@@ -4,21 +4,20 @@ namespace Snawbar\LogViewer\Http\Controllers;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Throwable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Collection;
 use Snawbar\LogViewer\Http\Requests\DeleteLogFileRequest;
 use Snawbar\LogViewer\Services\LogFileService;
 use Snawbar\LogViewer\Services\LogParserService;
+use Throwable;
 
 class LogViewerController extends Controller
 {
     public function __construct(
         protected LogFileService $logFileService,
         protected LogParserService $logParserService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {
@@ -56,7 +55,7 @@ class LogViewerController extends Controller
 
     protected function getLogEntries(?string $filename): Collection
     {
-        if (!$filename) {
+        if (! $filename) {
             return collect();
         }
 
@@ -65,7 +64,7 @@ class LogViewerController extends Controller
         } catch (Throwable $throwable) {
             logger()->warning('Failed to parse log file', [
                 'filename' => $filename,
-                'error' => $throwable->getMessage()
+                'error' => $throwable->getMessage(),
             ]);
 
             return collect();
