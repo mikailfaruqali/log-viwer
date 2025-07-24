@@ -44,7 +44,8 @@ class LogViewerController extends Controller
         } catch (Throwable $throwable) {
             return back()->withErrors(['error' => sprintf('Error deleting file: %s', $throwable->getMessage())]);
         }
-        return null;
+
+        return NULL;
     }
 
     private function readFileSafe(string $path): string
