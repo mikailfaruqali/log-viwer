@@ -39,7 +39,7 @@ This will create a `config/log-viewer.php` file in your project where you can cu
 
 return [
     // The URI path where the log viewer will be accessible.
-    'route_path' => 'logs',
+    'route-path' => 'logs',
 
     // The middleware applied to the log viewer routes.
     // By default, it's protected by 'web' and 'auth' middleware.
