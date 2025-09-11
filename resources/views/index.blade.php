@@ -344,6 +344,35 @@
             font-weight: 600;
             margin-bottom: 0.75rem;
             font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .copy-btn {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            color: #60a5fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .copy-btn:hover {
+            background: rgba(96, 165, 250, 0.2);
+            border-color: rgba(96, 165, 250, 0.5);
+            transform: scale(1.05);
+        }
+
+        .copy-btn.copied {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #22c55e;
         }
 
         .log-details pre {
@@ -356,6 +385,7 @@
             overflow-x: auto;
             white-space: pre-wrap;
             word-break: break-all;
+            position: relative;
         }
 
         .empty-state {
@@ -545,11 +575,21 @@
                         <div class="log-message" title="{{ $entry->message }}">{{ $entry->message }}</div>
                     </div>
                     <div class="log-details" id="details-{{ $index }}">
-                        <h6>Full Message</h6>
-                        <pre>{{ $entry->message }}</pre>
+                        <h6>
+                            Full Message
+                            <button class="copy-btn" onclick="copyToClipboard('message-{{ $index }}', this)">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
+                        </h6>
+                        <pre id="message-{{ $index }}">{{ $entry->message }}</pre>
                         @if (!empty($entry->extra))
-                            <h6>Stack Trace</h6>
-                            <pre>{{ trim($entry->extra) }}</pre>
+                            <h6>
+                                Stack Trace
+                                <button class="copy-btn" onclick="copyToClipboard('trace-{{ $index }}', this)">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </h6>
+                            <pre id="trace-{{ $index }}">{{ trim($entry->extra) }}</pre>
                         @endif
                     </div>
                 </div>
@@ -585,6 +625,39 @@
 
             details.classList.toggle('show');
             icon.classList.toggle('rotated');
+        }
+
+        function copyToClipboard(elementId, button) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-check"></i> Copied';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-check"></i> Copied';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
         }
 
         document.querySelectorAll('.file-item a').forEach(link => {

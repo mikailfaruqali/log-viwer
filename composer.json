@@ -1,6 +1,6 @@
 {
     "name": "mikailfaruqali/log-viewer",
-    "description": "A simple and clean log viewer for Laravel applications. Easily view and manage your log files through a straightforward web interface.",
+    "description": "A modern, elegant, and feature-rich log viewer for Laravel applications. Experience a beautiful glassmorphism-inspired interface that makes viewing and managing your application logs both intuitive and visually appealing.",
     "keywords": [
         "laravel",
         "log",
