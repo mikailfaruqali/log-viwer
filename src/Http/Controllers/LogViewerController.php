@@ -23,9 +23,15 @@ class LogViewerController extends Controller
     {
         $logFiles = $this->logFileService->getLogFiles();
         $currentFile = $this->getCurrentFile($request, $logFiles);
-        $logEntries = $this->getLogEntries($currentFile);
+        $searchTerm = $request->input('search');
+        $logEntries = $this->getLogEntries($currentFile, $searchTerm);
 
-        return view('snawbar-log-viewer::index', ['logFiles' => $logFiles, 'currentFile' => $currentFile, 'logEntries' => $logEntries]);
+        return view('snawbar-log-viewer::index', [
+            'logFiles' => $logFiles,
+            'currentFile' => $currentFile,
+            'logEntries' => $logEntries,
+            'searchTerm' => $searchTerm,
+        ]);
     }
 
     public function delete(DeleteLogFileRequest $deleteLogFileRequest): RedirectResponse
@@ -53,14 +59,14 @@ class LogViewerController extends Controller
         return $logFiles->first();
     }
 
-    protected function getLogEntries(?string $filename): Collection
+    protected function getLogEntries(?string $filename, ?string $searchTerm = NULL): Collection
     {
         if (! $filename) {
             return collect();
         }
 
         try {
-            return $this->logParserService->parseLogFile($filename);
+            return $this->logParserService->parseLogFile($filename, $searchTerm);
         } catch (Throwable $throwable) {
             logger()->warning('Failed to parse log file', [
                 'filename' => $filename,

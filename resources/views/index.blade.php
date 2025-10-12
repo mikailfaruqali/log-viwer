@@ -166,10 +166,16 @@
             border-bottom: 1px solid var(--glass-border);
             display: flex;
             align-items: center;
+            justify-content: space-between;
             padding: 0 2rem;
             position: sticky;
             top: 0;
             z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
         }
 
         .header-title {
@@ -177,6 +183,84 @@
             font-weight: 600;
             color: #e0e0e0;
             margin: 0;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+            max-width: 400px;
+        }
+
+        .search-form {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .search-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            width: 300px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .search-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(96, 165, 250, 0.5);
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            color: #9ca3af;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .clear-search {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .clear-search:hover {
+            color: #e0e0e0;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .clear-search.show {
+            display: block;
+        }
+
+        .search-results-info {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            color: #60a5fa;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .content {
@@ -415,6 +499,24 @@
 
             .header {
                 padding: 0 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                height: auto;
+                padding: 1rem;
+            }
+
+            .header-left {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-container {
+                width: 100%;
+                max-width: none;
+            }
+
+            .search-input {
+                width: 100%;
             }
 
             .content {
@@ -537,16 +639,38 @@
 
     <div class="main-content">
         <div class="header">
-            <button class="mobile-toggle" id="mobileToggle">
-                <i class="bi bi-list"></i>
-            </button>
-            <h1 class="header-title">
-                @if ($currentFile)
-                    Viewing: {{ $currentFile }}
-                @else
-                    Log Viewer Dashboard
-                @endif
-            </h1>
+            <div class="header-left">
+                <button class="mobile-toggle" id="mobileToggle">
+                    <i class="bi bi-list"></i>
+                </button>
+                <h1 class="header-title">
+                    @if ($currentFile)
+                        Viewing: {{ $currentFile }}
+                    @else
+                        Log Viewer Dashboard
+                    @endif
+                </h1>
+            </div>
+            @if ($currentFile)
+                <div class="search-container">
+                    <form action="{{ route('log-viewer.index') }}" method="GET" class="search-form" id="searchForm">
+                        <div style="position: relative; flex: 1;">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" 
+                                   name="search" 
+                                   value="{{ $searchTerm }}" 
+                                   placeholder="Search logs..." 
+                                   class="search-input" 
+                                   id="searchInput"
+                                   autocomplete="off">
+                            <button type="button" class="clear-search {{ $searchTerm ? 'show' : '' }}" id="clearSearch">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" name="file" value="{{ $currentFile }}">
+                    </form>
+                </div>
+            @endif
         </div>
 
         <div class="content">
@@ -561,6 +685,22 @@
                 </div>
             @endif
 
+            @if ($searchTerm && $currentFile)
+                <div class="search-results-info">
+                    <i class="bi bi-search"></i>
+                    <span>
+                        @if ($logEntries->count() > 0)
+                            Found {{ $logEntries->count() }} {{ Str::plural('result', $logEntries->count()) }} for "<strong>{{ $searchTerm }}</strong>"
+                        @else
+                            No results found for "<strong>{{ $searchTerm }}</strong>"
+                        @endif
+                    </span>
+                    <a href="{{ route('log-viewer.index', ['file' => $currentFile]) }}" style="margin-left: auto; color: #60a5fa; text-decoration: none;">
+                        <i class="bi bi-x-circle"></i> Clear search
+                    </a>
+                </div>
+            @endif
+
             @forelse($logEntries as $index => $entry)
                 @php
                     $levelClass = strtolower($entry->level);
@@ -572,7 +712,9 @@
                             <span class="log-level {{ $levelClass }}">{{ $entry->level }}</span>
                             <span class="log-timestamp">{{ $entry->timestamp }}</span>
                         </div>
-                        <div class="log-message" title="{{ $entry->message }}">{{ $entry->message }}</div>
+                        <div class="log-message" title="{{ $entry->message }}">
+                            {!! $entry->highlightSearchTerm($entry->message, $searchTerm) !!}
+                        </div>
                     </div>
                     <div class="log-details" id="details-{{ $index }}">
                         <h6>
@@ -581,7 +723,7 @@
                                 <i class="bi bi-clipboard"></i> Copy
                             </button>
                         </h6>
-                        <pre id="message-{{ $index }}">{{ $entry->message }}</pre>
+                        <pre id="message-{{ $index }}">{!! $entry->highlightSearchTerm($entry->message, $searchTerm) !!}</pre>
                         @if (!empty($entry->extra))
                             <h6>
                                 Stack Trace
@@ -589,16 +731,28 @@
                                     <i class="bi bi-clipboard"></i> Copy
                                 </button>
                             </h6>
-                            <pre id="trace-{{ $index }}">{{ trim($entry->extra) }}</pre>
+                            <pre id="trace-{{ $index }}">{!! $entry->highlightSearchTerm(trim($entry->extra), $searchTerm) !!}</pre>
                         @endif
                     </div>
                 </div>
             @empty
                 <div class="empty-state">
-                    <i class="bi bi-journal-x"></i>
-                    <h3>{{ $currentFile ? 'Log file is empty' : 'No file selected' }}</h3>
-                    <p>{{ $currentFile ? 'This log file contains no entries.' : 'Select a log file from the sidebar to view its contents.' }}
-                    </p>
+                    @if ($searchTerm)
+                        <i class="bi bi-search"></i>
+                        <h3>No search results found</h3>
+                        <p>No log entries match your search term "<strong>{{ $searchTerm }}</strong>".</p>
+                        <a href="{{ route('log-viewer.index', ['file' => $currentFile]) }}" style="color: #60a5fa; text-decoration: none;">
+                            <i class="bi bi-arrow-left"></i> Show all entries
+                        </a>
+                    @elseif ($currentFile)
+                        <i class="bi bi-journal-x"></i>
+                        <h3>Log file is empty</h3>
+                        <p>This log file contains no entries.</p>
+                    @else
+                        <i class="bi bi-journal-x"></i>
+                        <h3>No file selected</h3>
+                        <p>Select a log file from the sidebar to view its contents.</p>
+                    @endif
                 </div>
             @endforelse
         </div>
@@ -666,6 +820,42 @@
                 overlay.classList.remove('show');
             });
         });
+
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const searchForm = document.getElementById('searchForm');
+
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                
+                if (this.value.trim()) {
+                    clearSearch.classList.add('show');
+                } else {
+                    clearSearch.classList.remove('show');
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    searchForm.submit();
+                }, 500);
+            });
+
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(searchTimeout);
+                    searchForm.submit();
+                }
+            });
+        }
+
+        if (clearSearch) {
+            clearSearch.addEventListener('click', function() {
+                const currentFile = document.querySelector('input[name="file"]').value;
+                window.location.href = `{{ route('log-viewer.index') }}?file=${encodeURIComponent(currentFile)}`;
+            });
+        }
     </script>
 </body>
 

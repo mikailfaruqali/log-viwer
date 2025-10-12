@@ -15,14 +15,14 @@ class LogParserService
         protected LogFileService $logFileService
     ) {}
 
-    public function parseLogFile(string $filename): Collection
+    public function parseLogFile(string $filename, ?string $searchTerm = NULL): Collection
     {
         $content = $this->logFileService->getLogFileContent($filename);
 
-        return $this->parseLogContent($content);
+        return $this->parseLogContent($content, $searchTerm);
     }
 
-    public function parseLogContent(string $content): Collection
+    public function parseLogContent(string $content, ?string $searchTerm = NULL): Collection
     {
         if (in_array(trim($content), ['', '0'], TRUE)) {
             return collect();
@@ -35,7 +35,10 @@ class LogParserService
         foreach ($lines as $line) {
             if ($this->isLogEntryStart($line)) {
                 if ($currentEntry !== NULL) {
-                    $entries->push($this->createLogEntry($currentEntry));
+                    $logEntry = $this->createLogEntry($currentEntry);
+                    if ($this->matchesSearchTerm($logEntry, $searchTerm)) {
+                        $entries->push($logEntry);
+                    }
                 }
 
                 $currentEntry = $this->parseLogEntryHeader($line);
@@ -45,7 +48,10 @@ class LogParserService
         }
 
         if ($currentEntry !== NULL) {
-            $entries->push($this->createLogEntry($currentEntry));
+            $logEntry = $this->createLogEntry($currentEntry);
+            if ($this->matchesSearchTerm($logEntry, $searchTerm)) {
+                $entries->push($logEntry);
+            }
         }
 
         return $entries->reverse()->values();
@@ -82,11 +88,38 @@ class LogParserService
     protected function createLogEntry(array $data): LogEntry
     {
         return new LogEntry(
-            timestamp: $data['timestamp'],
-            environment: $data['environment'],
-            level: $data['level'],
-            message: $data['message'],
-            extra: trim($data['extra'])
+            $data['timestamp'],
+            $data['environment'],
+            $data['level'],
+            $data['message'],
+            trim($data['extra'])
         );
+    }
+
+    protected function matchesSearchTerm(LogEntry $logEntry, ?string $searchTerm): bool
+    {
+        if ($searchTerm === NULL || trim($searchTerm) === '') {
+            return TRUE;
+        }
+
+        $searchTerm = mb_strtolower(trim($searchTerm));
+
+        if (mb_strpos(mb_strtolower($logEntry->message), $searchTerm) !== FALSE) {
+            return TRUE;
+        }
+
+        if (mb_strpos(mb_strtolower($logEntry->level), $searchTerm) !== FALSE) {
+            return TRUE;
+        }
+
+        if (mb_strpos(mb_strtolower($logEntry->extra), $searchTerm) !== FALSE) {
+            return TRUE;
+        }
+
+        if (mb_strpos(mb_strtolower($logEntry->timestamp), $searchTerm) !== FALSE) {
+            return TRUE;
+        }
+
+        return mb_strpos(mb_strtolower($logEntry->environment), $searchTerm) !== FALSE;
     }
 }

@@ -9,7 +9,6 @@ use RectorLaravel\Rector\ArrayDimFetch\EnvVariableToEnvHelperRector;
 use RectorLaravel\Rector\Class_\AnonymousMigrationsRector;
 use RectorLaravel\Rector\Coalesce\ApplyDefaultInsteadOfNullCoalesceRector;
 use RectorLaravel\Rector\Empty_\EmptyToBlankAndFilledFuncRector;
-use RectorLaravel\Rector\Expr\AppEnvironmentComparisonToParameterRector;
 use RectorLaravel\Rector\FuncCall\NotFilledBlankFuncCallToBlankFilledFuncCallRector;
 use RectorLaravel\Rector\FuncCall\RemoveDumpDataDeadCodeRector;
 use RectorLaravel\Rector\MethodCall\RedirectBackToBackHelperRector;
@@ -35,7 +34,6 @@ return RectorConfig::configure()
     )
     ->withRules([
         AnonymousMigrationsRector::class,
-        AppEnvironmentComparisonToParameterRector::class,
         ApplyDefaultInsteadOfNullCoalesceRector::class,
         EmptyToBlankAndFilledFuncRector::class,
         EnvVariableToEnvHelperRector::class,
