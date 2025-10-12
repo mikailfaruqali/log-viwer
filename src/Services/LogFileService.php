@@ -18,7 +18,7 @@ class LogFileService
 
     public function getLogFiles(): Collection
     {
-        return collect(File::glob($this->logPath . '/*.log'))
+        return collect(File::glob(sprintf('%s/*.log', $this->logPath)))
             ->map(fn ($file) => basename($file))
             ->filter(fn ($filename) => $this->isValidLogFile($filename))
             ->sortByDesc(fn ($filename) => $this->getFileModificationTime($filename))
@@ -56,7 +56,7 @@ class LogFileService
     {
         $filename = basename($filename);
 
-        return $this->logPath . '/' . $filename;
+        return sprintf('%s/%s', $this->logPath, $filename);
     }
 
     protected function isValidLogFile(string $filename): bool

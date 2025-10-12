@@ -10,7 +10,7 @@ class LogViewerServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/log-viewer.php',
+            sprintf('%s/../config/log-viewer.php', __DIR__),
             'snawbar-log-viewer'
         );
     }
@@ -19,22 +19,22 @@ class LogViewerServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../config/log-viewer.php' => config_path('snawbar-log-viewer.php'),
+                sprintf('%s/../config/log-viewer.php', __DIR__) => config_path('snawbar-log-viewer.php'),
             ], 'config');
 
             $this->publishes([
-                __DIR__ . '/../resources/views' => resource_path('views/vendor/snawbar-log-viewer'),
+                sprintf('%s/../resources/views', __DIR__) => resource_path('views/vendor/snawbar-log-viewer'),
             ], 'views');
         }
 
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'snawbar-log-viewer');
+        $this->loadViewsFrom(sprintf('%s/../resources/views', __DIR__), 'snawbar-log-viewer');
         $this->registerRoutes();
     }
 
     protected function registerRoutes()
     {
         Route::group($this->routeConfiguration(), function () {
-            $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+            $this->loadRoutesFrom(sprintf('%s/routes/web.php', __DIR__));
         });
     }
 

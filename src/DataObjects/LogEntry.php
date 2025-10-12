@@ -71,8 +71,8 @@ class LogEntry
 
         $searchTerm = trim($searchTerm);
         $highlighted = preg_replace(
-            '/(' . preg_quote($searchTerm, '/') . ')/i',
-            '<mark style="background: rgba(255, 255, 0, 0.3); color: inherit; padding: 0;">$1</mark>',
+            sprintf('/(%s)/i', preg_quote($searchTerm, '/')),
+            '<span class="search-highlight">$1</span>',
             $text
         );
 

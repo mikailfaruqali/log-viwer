@@ -7,6 +7,7 @@
     <title>Snawbar Log Viewer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --glass-bg: rgba(255, 255, 255, 0.1);
@@ -151,6 +152,10 @@
             transform: scale(1.1);
         }
 
+        .delete-form {
+            display: inline;
+        }
+
         .main-content {
             margin-left: var(--sidebar-width);
             min-height: 100vh;
@@ -190,77 +195,134 @@
             align-items: center;
             position: relative;
             max-width: 400px;
+            min-width: 280px;
         }
 
         .search-form {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
             width: 100%;
+            position: relative;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
         }
 
         .search-input {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 25px;
-            padding: 0.6rem 1rem 0.6rem 2.5rem;
-            color: #e0e0e0;
+            padding: 0.7rem 1rem 0.7rem 2.8rem;
+            color: #ffffff;
             font-size: 0.9rem;
-            width: 300px;
+            width: 100%;
             transition: all 0.3s ease;
             outline: none;
+            font-weight: 400;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
         }
 
         .search-input:focus {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(96, 165, 250, 0.5);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(96, 165, 250, 0.4);
             box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.1);
         }
 
         .search-input::placeholder {
-            color: #9ca3af;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 300;
         }
 
         .search-icon {
             position: absolute;
-            left: 0.8rem;
-            color: #9ca3af;
-            font-size: 0.9rem;
+            left: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1rem;
             pointer-events: none;
-        }
-
-        .clear-search {
-            background: none;
-            border: none;
-            color: #9ca3af;
-            font-size: 0.9rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 50%;
+            z-index: 2;
             transition: all 0.3s ease;
-            display: none;
         }
 
-        .clear-search:hover {
-            color: #e0e0e0;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .clear-search.show {
-            display: block;
+        .search-input:focus ~ .search-icon {
+            color: #60a5fa;
         }
 
         .search-results-info {
-            background: rgba(96, 165, 250, 0.1);
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.1), rgba(139, 92, 246, 0.1));
             border: 1px solid rgba(96, 165, 250, 0.3);
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1rem;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
             color: #60a5fa;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(96, 165, 250, 0.1);
+            animation: slideInDown 0.5s ease-out;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-results-info .clear-link {
+            margin-left: auto;
+            color: #60a5fa;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            transition: all 0.3s ease;
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .search-results-info .result-text {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .search-results-info .clear-link:hover {
+            background: rgba(96, 165, 250, 0.2);
+            border-color: rgba(96, 165, 250, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
+        }
+
+        .empty-state-search h3 {
+            font-size: 1.25rem;
+        }
+
+        .search-highlight {
+            background: linear-gradient(120deg, #ffd60a, #ffbe0b);
+            color: #000;
+            padding: 0.1rem 0.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(255, 214, 10, 0.3);
         }
 
         .content {
@@ -416,7 +478,6 @@
                 opacity: 0;
                 transform: translateY(-10px);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -498,25 +559,58 @@
             }
 
             .header {
-                padding: 0 1rem;
-                flex-direction: column;
-                gap: 1rem;
-                height: auto;
                 padding: 1rem;
+                flex-direction: column;
+                gap: 1.5rem;
+                height: auto;
+                min-height: 100px;
             }
 
             .header-left {
                 width: 100%;
                 justify-content: space-between;
+                align-items: center;
+            }
+
+            .header-title {
+                font-size: 1.1rem;
             }
 
             .search-container {
                 width: 100%;
                 max-width: none;
+                min-width: auto;
+            }
+
+            .search-form {
+                width: 100%;
             }
 
             .search-input {
-                width: 100%;
+                padding: 0.8rem 1rem 0.8rem 2.8rem;
+                font-size: 1rem;
+            }
+
+            .search-icon {
+                left: 1rem;
+                font-size: 1.1rem;
+            }
+
+            .search-results-info {
+                padding: 1rem;
+                flex-direction: row;
+                align-items: center;
+                gap: 0.75rem;
+                text-align: left;
+                flex-wrap: nowrap;
+                justify-content: space-between;
+            }
+
+            .search-results-info .clear-link {
+                margin-left: auto;
+                align-self: center;
+                margin-top: 0;
+                flex-shrink: 0;
             }
 
             .content {
@@ -581,6 +675,52 @@
             }
         }
 
+        @media (max-width: 576px) {
+            .header {
+                padding: 0.75rem;
+                gap: 1rem;
+            }
+
+            .header-title {
+                font-size: 1rem;
+                text-align: center;
+            }
+
+            .search-input {
+                padding: 0.7rem 1rem 0.7rem 2.5rem;
+                font-size: 0.95rem;
+                border-radius: 22px;
+            }
+
+            .search-icon {
+                left: 0.9rem;
+                font-size: 1rem;
+            }
+
+            .search-results-info {
+                padding: 0.8rem;
+                font-size: 0.9rem;
+                flex-direction: row;
+                gap: 0.5rem;
+                align-items: center;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            .search-results-info .clear-link {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+                align-self: center;
+                margin-left: 0;
+                width: fit-content;
+                flex-shrink: 0;
+            }
+
+            .content {
+                padding: 0.75rem;
+            }
+        }
+
         .overlay {
             display: none;
             position: fixed;
@@ -596,6 +736,21 @@
             .overlay.show {
                 display: block;
             }
+        }
+
+        .swal-dark-theme {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+        }
+
+        .swal2-popup.swal-dark-theme .swal2-title {
+            color: #e0e0e0;
+        }
+
+        .swal2-popup.swal-dark-theme .swal2-html-container {
+            color: #9ca3af;
         }
     </style>
 </head>
@@ -618,8 +773,7 @@
                         <a href="?file={{ urlencode($file) }}" class="file-name"
                             title="{{ $file }}">{{ $file }}</a>
                     </div>
-                    <form action="{{ route('log-viewer.delete') }}" method="POST" style="display: inline;"
-                        onsubmit="return confirm('Are you sure you want to delete {{ $file }}?');">
+                    <form action="{{ route('log-viewer.delete') }}" method="POST" class="delete-form" data-filename="{{ $file }}">
                         @csrf
                         @method('DELETE')
                         <input type="hidden" name="file" value="{{ $file }}">
@@ -654,18 +808,15 @@
             @if ($currentFile)
                 <div class="search-container">
                     <form action="{{ route('log-viewer.index') }}" method="GET" class="search-form" id="searchForm">
-                        <div style="position: relative; flex: 1;">
-                            <i class="bi bi-search search-icon"></i>
+                        <div class="search-wrapper">
+                            <i class="bi bi-search search-icon" id="searchIcon"></i>
                             <input type="text" 
                                    name="search" 
                                    value="{{ $searchTerm }}" 
-                                   placeholder="Search logs..." 
+                                   placeholder="Search in logs..." 
                                    class="search-input" 
                                    id="searchInput"
                                    autocomplete="off">
-                            <button type="button" class="clear-search {{ $searchTerm ? 'show' : '' }}" id="clearSearch">
-                                <i class="bi bi-x"></i>
-                            </button>
                         </div>
                         <input type="hidden" name="file" value="{{ $currentFile }}">
                     </form>
@@ -687,15 +838,17 @@
 
             @if ($searchTerm && $currentFile)
                 <div class="search-results-info">
-                    <i class="bi bi-search"></i>
-                    <span>
-                        @if ($logEntries->count() > 0)
-                            Found {{ $logEntries->count() }} {{ Str::plural('result', $logEntries->count()) }} for "<strong>{{ $searchTerm }}</strong>"
-                        @else
-                            No results found for "<strong>{{ $searchTerm }}</strong>"
-                        @endif
-                    </span>
-                    <a href="{{ route('log-viewer.index', ['file' => $currentFile]) }}" style="margin-left: auto; color: #60a5fa; text-decoration: none;">
+                    <div class="result-text">
+                        <i class="bi bi-search-heart"></i>
+                        <span>
+                            @if ($logEntries->count() > 0)
+                                Found <strong>{{ $logEntries->count() }}</strong> {{ Str::plural('result', $logEntries->count()) }}
+                            @else
+                                No results found
+                            @endif
+                        </span>
+                    </div>
+                    <a href="{{ route('log-viewer.index', ['file' => $currentFile]) }}" class="clear-link">
                         <i class="bi bi-x-circle"></i> Clear search
                     </a>
                 </div>
@@ -739,11 +892,8 @@
                 <div class="empty-state">
                     @if ($searchTerm)
                         <i class="bi bi-search"></i>
-                        <h3>No search results found</h3>
-                        <p>No log entries match your search term "<strong>{{ $searchTerm }}</strong>".</p>
-                        <a href="{{ route('log-viewer.index', ['file' => $currentFile]) }}" style="color: #60a5fa; text-decoration: none;">
-                            <i class="bi bi-arrow-left"></i> Show all entries
-                        </a>
+                        <h3 class="empty-state-search">No search results found</h3>
+                        <p>Try searching with different keywords.</p>
                     @elseif ($currentFile)
                         <i class="bi bi-journal-x"></i>
                         <h3>Log file is empty</h3>
@@ -795,7 +945,6 @@
                     button.classList.remove('copied');
                 }, 2000);
             }).catch(() => {
-                // Fallback for older browsers
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
                 document.body.appendChild(textArea);
@@ -822,40 +971,61 @@
         });
 
         const searchInput = document.getElementById('searchInput');
-        const clearSearch = document.getElementById('clearSearch');
         const searchForm = document.getElementById('searchForm');
 
         if (searchInput) {
             let searchTimeout;
+
             searchInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
                 
-                if (this.value.trim()) {
-                    clearSearch.classList.add('show');
-                } else {
-                    clearSearch.classList.remove('show');
-                }
+                const hasValue = this.value.trim();
                 
-                searchTimeout = setTimeout(() => {
-                    searchForm.submit();
-                }, 500);
+                if (hasValue) {
+                    searchTimeout = setTimeout(() => {
+                        searchForm.submit();
+                    }, 600);
+                }
             });
 
             searchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     clearTimeout(searchTimeout);
-                    searchForm.submit();
+                    if (this.value.trim()) {
+                        searchForm.submit();
+                    }
                 }
             });
         }
 
-        if (clearSearch) {
-            clearSearch.addEventListener('click', function() {
-                const currentFile = document.querySelector('input[name="file"]').value;
-                window.location.href = `{{ route('log-viewer.index') }}?file=${encodeURIComponent(currentFile)}`;
+        document.querySelectorAll('.delete-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const filename = this.dataset.filename;
+                
+                Swal.fire({
+                    title: 'Delete Log File',
+                    text: `Are you sure you want to delete "${filename}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
+                    background: 'rgba(17, 17, 17, 0.95)',
+                    color: '#e0e0e0',
+                    customClass: {
+                        popup: 'swal-dark-theme'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.submit();
+                    }
+                });
             });
-        }
+        });
     </script>
 </body>
 

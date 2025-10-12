@@ -44,7 +44,7 @@ class LogViewerController extends Controller
             return to_route('log-viewer.index')
                 ->with('success', sprintf("Log file '%s' has been deleted successfully.", $filename));
         } catch (Throwable $throwable) {
-            return back()->with('error', 'Failed to delete log file: ' . $throwable->getMessage());
+            return back()->with('error', sprintf('Failed to delete log file: %s', $throwable->getMessage()));
         }
     }
 
