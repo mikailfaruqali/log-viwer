@@ -164,7 +164,6 @@
         }
 
         .header {
-            height: var(--header-height);
             background: rgba(17, 17, 17, 0.9);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -172,10 +171,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 2rem;
+            padding: 1rem 2rem;
             position: sticky;
             top: 0;
             z-index: 100;
+            transition: padding 0.3s ease;
+        }
+
+        .header:has(.search-container) {
+            padding: 1.5rem 2rem;
         }
 
         .header-left {
@@ -248,7 +252,7 @@
             transition: all 0.3s ease;
         }
 
-        .search-input:focus ~ .search-icon {
+        .search-input:focus~.search-icon {
             color: #60a5fa;
         }
 
@@ -276,6 +280,7 @@
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -478,6 +483,7 @@
                 opacity: 0;
                 transform: translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -559,11 +565,14 @@
             }
 
             .header {
-                padding: 1rem;
+                padding: 0.75rem 1rem;
                 flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header:has(.search-container) {
+                padding: 1rem;
                 gap: 1.5rem;
-                height: auto;
-                min-height: 100px;
             }
 
             .header-left {
@@ -677,6 +686,11 @@
 
         @media (max-width: 576px) {
             .header {
+                padding: 0.6rem 0.75rem;
+                gap: 0.75rem;
+            }
+
+            .header:has(.search-container) {
                 padding: 0.75rem;
                 gap: 1rem;
             }
@@ -773,7 +787,8 @@
                         <a href="?file={{ urlencode($file) }}" class="file-name"
                             title="{{ $file }}">{{ $file }}</a>
                     </div>
-                    <form action="{{ route('log-viewer.delete') }}" method="POST" class="delete-form" data-filename="{{ $file }}">
+                    <form action="{{ route('log-viewer.delete') }}" method="POST" class="delete-form"
+                        data-filename="{{ $file }}">
                         @csrf
                         @method('DELETE')
                         <input type="hidden" name="file" value="{{ $file }}">
@@ -810,13 +825,9 @@
                     <form action="{{ route('log-viewer.index') }}" method="GET" class="search-form" id="searchForm">
                         <div class="search-wrapper">
                             <i class="bi bi-search search-icon" id="searchIcon"></i>
-                            <input type="text" 
-                                   name="search" 
-                                   value="{{ $searchTerm }}" 
-                                   placeholder="Search in logs..." 
-                                   class="search-input" 
-                                   id="searchInput"
-                                   autocomplete="off">
+                            <input type="text" name="search" value="{{ $searchTerm }}"
+                                placeholder="Search in logs..." class="search-input" id="searchInput"
+                                autocomplete="off">
                         </div>
                         <input type="hidden" name="file" value="{{ $currentFile }}">
                     </form>
@@ -842,7 +853,8 @@
                         <i class="bi bi-search-heart"></i>
                         <span>
                             @if ($logEntries->count() > 0)
-                                Found <strong>{{ $logEntries->count() }}</strong> {{ Str::plural('result', $logEntries->count()) }}
+                                Found <strong>{{ $logEntries->count() }}</strong>
+                                {{ Str::plural('result', $logEntries->count()) }}
                             @else
                                 No results found
                             @endif
@@ -934,12 +946,12 @@
         function copyToClipboard(elementId, button) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
-            
+
             navigator.clipboard.writeText(text).then(() => {
                 const originalHTML = button.innerHTML;
                 button.innerHTML = '<i class="bi bi-check"></i> Copied';
                 button.classList.add('copied');
-                
+
                 setTimeout(() => {
                     button.innerHTML = originalHTML;
                     button.classList.remove('copied');
@@ -951,11 +963,11 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                
+
                 const originalHTML = button.innerHTML;
                 button.innerHTML = '<i class="bi bi-check"></i> Copied';
                 button.classList.add('copied');
-                
+
                 setTimeout(() => {
                     button.innerHTML = originalHTML;
                     button.classList.remove('copied');
@@ -978,9 +990,9 @@
 
             searchInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
-                
+
                 const hasValue = this.value.trim();
-                
+
                 if (hasValue) {
                     searchTimeout = setTimeout(() => {
                         searchForm.submit();
@@ -1002,9 +1014,9 @@
         document.querySelectorAll('.delete-form').forEach(form => {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                
+
                 const filename = this.dataset.filename;
-                
+
                 Swal.fire({
                     title: 'Delete Log File',
                     text: `Are you sure you want to delete "${filename}"?`,
