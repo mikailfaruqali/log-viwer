@@ -500,6 +500,23 @@
             justify-content: space-between;
         }
 
+        .log-section {
+            margin-bottom: 1rem;
+        }
+
+        .log-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .log-section strong {
+            color: #60a5fa;
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .copy-btn {
             background: rgba(96, 165, 250, 0.1);
             border: 1px solid rgba(96, 165, 250, 0.3);
@@ -521,6 +538,35 @@
         }
 
         .copy-btn.copied {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .copy-btn-inline {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            color: #60a5fa;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            opacity: 0.7;
+            font-weight: 500;
+        }
+
+        .copy-btn-inline:hover {
+            background: rgba(96, 165, 250, 0.2);
+            border-color: rgba(96, 165, 250, 0.5);
+            transform: scale(1.05);
+            opacity: 1;
+        }
+
+        .copy-btn-inline.copied {
             background: rgba(34, 197, 94, 0.1);
             border-color: rgba(34, 197, 94, 0.3);
             color: #22c55e;
@@ -637,6 +683,12 @@
                 flex-wrap: wrap;
                 gap: 0.5rem;
                 width: 100%;
+            }
+
+            .copy-btn-inline {
+                order: 1;
+                margin-left: auto;
+                opacity: 1;
             }
 
             .log-message {
@@ -876,27 +928,26 @@
                             <i class="bi bi-caret-right expand-icon" id="icon-{{ $index }}"></i>
                             <span class="log-level {{ $levelClass }}">{{ $entry->level }}</span>
                             <span class="log-timestamp">{{ $entry->timestamp }}</span>
+                            <button class="copy-btn-inline"
+                                onclick="event.stopPropagation(); copyCompleteLog({{ $index }}, this)"
+                                title="Copy complete log entry">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
                         </div>
                         <div class="log-message" title="{{ $entry->message }}">
                             {!! $entry->highlightSearchTerm($entry->message, $searchTerm) !!}
                         </div>
                     </div>
                     <div class="log-details" id="details-{{ $index }}">
-                        <h6>
-                            Full Message
-                            <button class="copy-btn" onclick="copyToClipboard('message-{{ $index }}', this)">
-                                <i class="bi bi-clipboard"></i> Copy
-                            </button>
-                        </h6>
-                        <pre id="message-{{ $index }}">{!! $entry->highlightSearchTerm($entry->message, $searchTerm) !!}</pre>
+                        <div class="log-section">
+                            <strong>Message:</strong>
+                            <pre id="message-{{ $index }}">{!! $entry->highlightSearchTerm($entry->message, $searchTerm) !!}</pre>
+                        </div>
                         @if (!empty($entry->extra))
-                            <h6>
-                                Stack Trace
-                                <button class="copy-btn" onclick="copyToClipboard('trace-{{ $index }}', this)">
-                                    <i class="bi bi-clipboard"></i> Copy
-                                </button>
-                            </h6>
-                            <pre id="trace-{{ $index }}">{!! $entry->highlightSearchTerm(trim($entry->extra), $searchTerm) !!}</pre>
+                            <div class="log-section">
+                                <strong>Stack Trace:</strong>
+                                <pre id="trace-{{ $index }}">{!! $entry->highlightSearchTerm(trim($entry->extra), $searchTerm) !!}</pre>
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -943,11 +994,17 @@
             icon.classList.toggle('rotated');
         }
 
-        function copyToClipboard(elementId, button) {
-            const element = document.getElementById(elementId);
-            const text = element.textContent;
+        function copyCompleteLog(index, button) {
+            const messageElement = document.getElementById(`message-${index}`);
+            const traceElement = document.getElementById(`trace-${index}`);
 
-            navigator.clipboard.writeText(text).then(() => {
+            let completeText = `MESSAGE:\n${messageElement.textContent}`;
+
+            if (traceElement) {
+                completeText += `\n\nSTACK TRACE:\n${traceElement.textContent}`;
+            }
+
+            navigator.clipboard.writeText(completeText).then(() => {
                 const originalHTML = button.innerHTML;
                 button.innerHTML = '<i class="bi bi-check"></i> Copied';
                 button.classList.add('copied');
@@ -955,10 +1012,10 @@
                 setTimeout(() => {
                     button.innerHTML = originalHTML;
                     button.classList.remove('copied');
-                }, 2000);
+                }, 1500);
             }).catch(() => {
                 const textArea = document.createElement('textarea');
-                textArea.value = text;
+                textArea.value = completeText;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
@@ -971,7 +1028,7 @@
                 setTimeout(() => {
                     button.innerHTML = originalHTML;
                     button.classList.remove('copied');
-                }, 2000);
+                }, 1500);
             });
         }
 
