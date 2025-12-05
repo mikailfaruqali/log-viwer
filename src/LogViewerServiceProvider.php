@@ -23,11 +23,11 @@ class LogViewerServiceProvider extends ServiceProvider
             ], 'config');
 
             $this->publishes([
-                sprintf('%s/../resources/views', __DIR__) => resource_path('views/vendor/snawbar-log-viewer'),
+                sprintf('%s/../views', __DIR__) => resource_path('views/vendor/snawbar-log-viewer'),
             ], 'views');
         }
 
-        $this->loadViewsFrom(sprintf('%s/../resources/views', __DIR__), 'snawbar-log-viewer');
+        $this->loadViewsFrom(sprintf('%s/../views', __DIR__), 'snawbar-log-viewer');
         $this->registerRoutes();
     }
 

@@ -377,9 +377,16 @@
             padding: 1.25rem;
             cursor: pointer;
             display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .log-header-top {
+            display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all 0.3s ease;
+            width: 100%;
         }
 
         .log-header:hover {
@@ -572,6 +579,67 @@
             color: #22c55e;
         }
 
+        .context-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            width: 100%;
+            clear: both;
+        }
+
+        .context-badge {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #a78bfa;
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .context-badge:hover {
+            background: rgba(139, 92, 246, 0.25);
+            border-color: rgba(139, 92, 246, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .context-badge-key {
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            opacity: 0.95;
+            flex-shrink: 0;
+        }
+
+        .context-badge-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .context-badge.userid {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .context-badge.tenant {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .context-badge.url {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+
         .log-details pre {
             background: rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -595,6 +663,13 @@
             font-size: 3rem;
             margin-bottom: 1rem;
             color: #374151;
+        }
+
+        @media (max-width: 1024px) {
+            .context-badge {
+                font-size: 0.7rem;
+                padding: 0.25rem 0.6rem;
+            }
         }
 
         @media (max-width: 991.98px) {
@@ -717,6 +792,17 @@
 
             .log-timestamp {
                 font-size: 0.8rem;
+            }
+
+            .context-badges {
+                margin-top: 0.5rem;
+                width: 100%;
+                gap: 0.4rem;
+            }
+
+            .context-badge {
+                font-size: 0.7rem;
+                padding: 0.25rem 0.5rem;
             }
         }
 
@@ -924,10 +1010,12 @@
                 @endphp
                 <div class="log-entry">
                     <div class="log-header" onclick="toggleLogDetails({{ $index }})">
-                        <div class="log-meta">
-                            <i class="bi bi-caret-right expand-icon" id="icon-{{ $index }}"></i>
-                            <span class="log-level {{ $levelClass }}">{{ $entry->level }}</span>
-                            <span class="log-timestamp">{{ $entry->timestamp }}</span>
+                        <div class="log-header-top">
+                            <div class="log-meta">
+                                <i class="bi bi-caret-right expand-icon" id="icon-{{ $index }}"></i>
+                                <span class="log-level {{ $levelClass }}">{{ $entry->level }}</span>
+                                <span class="log-timestamp">{{ $entry->timestamp }}</span>
+                            </div>
                             <button class="copy-btn-inline"
                                 onclick="event.stopPropagation(); copyCompleteLog({{ $index }}, this)"
                                 title="Copy complete log entry">
@@ -937,6 +1025,16 @@
                         <div class="log-message" title="{{ $entry->message }}">
                             {!! $entry->highlightSearchTerm($entry->message, $searchTerm) !!}
                         </div>
+                        @if ($entry->hasContext())
+                            <div class="context-badges">
+                                @foreach ($entry->getContext() as $key => $value)
+                                    <span class="context-badge {{ strtolower($key) }}" title="{{ $key }}: {{ $value }}">
+                                        <span class="context-badge-key">{{ strtoupper($key) }}:</span>
+                                        <span class="context-badge-value">{{ $value }}</span>
+                                    </span>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                     <div class="log-details" id="details-{{ $index }}">
                         <div class="log-section">

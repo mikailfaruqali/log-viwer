@@ -76,12 +76,16 @@ class LogParserService
     {
         preg_match(self::LOG_REGEX, $line, $matches);
 
+        $message = $matches[4] ?? '';
+        $context = $this->extractContext($message);
+
         return [
             'timestamp' => $matches[1] ?? '',
             'environment' => $matches[2] ?? self::DEFAULT_ENVIRONMENT,
             'level' => mb_strtolower($matches[3] ?? 'info'),
-            'message' => $matches[4] ?? '',
+            'message' => $message,
             'extra' => '',
+            'context' => $context,
         ];
     }
 
@@ -92,8 +96,36 @@ class LogParserService
             $data['environment'],
             $data['level'],
             $data['message'],
-            trim($data['extra'])
+            trim($data['extra']),
+            $data['context'] ?? []
         );
+    }
+
+    protected function extractContext(string $message): array
+    {
+        $context = [];
+
+        if (preg_match_all('/"([^"]+)":("([^"]*)"|(\d+)|true|false|null)/', $message, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $key = $match[1];
+
+                if ($key === 'exception') {
+                    break;
+                }
+
+                if (isset($match[4]) && ($match[4] !== '' && $match[4] !== '0')) {
+                    $value = $match[4];
+                } elseif (isset($match[3]) && $match[3] !== '') {
+                    $value = $match[3];
+                } else {
+                    $value = trim($match[2], '"');
+                }
+
+                $context[$key] = $value;
+            }
+        }
+
+        return $context;
     }
 
     protected function matchesSearchTerm(LogEntry $logEntry, ?string $searchTerm): bool

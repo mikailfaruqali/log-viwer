@@ -14,18 +14,22 @@ class LogEntry
 
     public string $extra;
 
+    public array $context = [];
+
     public function __construct(
         string $timestamp,
         string $environment,
         string $level,
         string $message,
-        string $extra = ''
+        string $extra = '',
+        array $context = []
     ) {
         $this->timestamp = $timestamp;
         $this->environment = $environment;
         $this->level = $level;
         $this->message = $message;
         $this->extra = $extra;
+        $this->context = $context;
     }
 
     public function hasStackTrace(): bool
@@ -77,5 +81,15 @@ class LogEntry
         );
 
         return $highlighted ?: $text;
+    }
+
+    public function hasContext(): bool
+    {
+        return $this->context !== [];
+    }
+
+    public function getContext(): array
+    {
+        return $this->context;
     }
 }
