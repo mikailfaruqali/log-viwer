@@ -43,7 +43,7 @@ class LogViewerController extends Controller
 
     public function delete(DeleteLogFileRequest $deleteLogFileRequest): RedirectResponse
     {
-        $filename = $deleteLogFileRequest->validated('file');
+        $filename = $deleteLogFileRequest->validated()['file'];
 
         try {
             $this->logFileService->deleteLogFile($filename);
