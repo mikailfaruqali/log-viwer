@@ -11,9 +11,12 @@ class LogParserService
 
     protected const DEFAULT_ENVIRONMENT = 'production';
 
-    public function __construct(
-        protected LogFileService $logFileService
-    ) {}
+    protected $logFileService;
+
+    public function __construct(LogFileService $logFileService)
+    {
+        $this->logFileService = $logFileService;
+    }
 
     public function parseLogFile(string $filename, ?string $searchTerm = NULL): Collection
     {

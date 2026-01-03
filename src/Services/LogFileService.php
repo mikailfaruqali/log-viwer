@@ -34,20 +34,28 @@ class LogFileService
     {
         $path = $this->getLogFilePath($filename);
 
-        throw_unless($this->logFileExists($filename), new InvalidArgumentException(sprintf("Log file '%s' does not exist.", $filename)));
+        if (!$this->logFileExists($filename)) {
+            throw new InvalidArgumentException(sprintf("Log file '%s' does not exist.", $filename));
+        }
 
         return File::get($path);
     }
 
     public function deleteLogFile(string $filename): bool
     {
-        throw_if($filename === '' || $filename === '0', new InvalidArgumentException('Filename cannot be empty.'));
+        if ($filename === '' || $filename === '0') {
+            throw new InvalidArgumentException('Filename cannot be empty.');
+        }
 
-        throw_unless($this->logFileExists($filename), new InvalidArgumentException(sprintf("Log file '%s' does not exist.", $filename)));
+        if (!$this->logFileExists($filename)) {
+            throw new InvalidArgumentException(sprintf("Log file '%s' does not exist.", $filename));
+        }
 
         $path = $this->getLogFilePath($filename);
 
-        throw_unless(File::delete($path), new RuntimeException(sprintf("Failed to delete log file '%s'.", $filename)));
+        if (!File::delete($path)) {
+            throw new RuntimeException(sprintf("Failed to delete log file '%s'.", $filename));
+        }
 
         return TRUE;
     }
@@ -61,7 +69,7 @@ class LogFileService
 
     protected function isValidLogFile(string $filename): bool
     {
-        return str_ends_with($filename, '.log') &&
+        return substr($filename, -4) === '.log' &&
                File::isReadable($this->getLogFilePath($filename));
     }
 

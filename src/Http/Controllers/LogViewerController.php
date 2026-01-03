@@ -14,10 +14,17 @@ use Throwable;
 
 class LogViewerController extends Controller
 {
+    protected $logFileService;
+
+    protected $logParserService;
+
     public function __construct(
-        protected LogFileService $logFileService,
-        protected LogParserService $logParserService
-    ) {}
+        LogFileService $logFileService,
+        LogParserService $logParserService
+    ) {
+        $this->logFileService = $logFileService;
+        $this->logParserService = $logParserService;
+    }
 
     public function index(Request $request): View
     {
