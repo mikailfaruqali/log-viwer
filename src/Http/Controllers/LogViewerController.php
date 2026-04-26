@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Snawbar\LogViewer\Http\Requests\DeleteLogFileRequest;
 use Snawbar\LogViewer\Services\LogFileService;
 use Snawbar\LogViewer\Services\LogParserService;
@@ -34,6 +35,17 @@ class LogViewerController extends Controller
             'logEntries' => $logEntries,
             'searchTerm' => $searchTerm,
         ]);
+    }
+
+    public function download(Request $request): BinaryFileResponse|RedirectResponse
+    {
+        $filename = (string) $request->input('file', '');
+
+        try {
+            return $this->logFileService->downloadLogFile($filename);
+        } catch (Throwable $throwable) {
+            return back()->with('error', sprintf('Failed to download log file: %s', $throwable->getMessage()));
+        }
     }
 
     public function delete(DeleteLogFileRequest $deleteLogFileRequest): RedirectResponse

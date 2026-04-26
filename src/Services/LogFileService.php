@@ -43,6 +43,17 @@ class LogFileService
         return File::get($path);
     }
 
+    public function downloadLogFile(string $filename): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        throw_if($filename === '' || $filename === '0', InvalidArgumentException::class, 'Filename cannot be empty.');
+
+        if (! $this->logFileExists($filename)) {
+            throw new InvalidArgumentException(sprintf("Log file '%s' does not exist.", $filename));
+        }
+
+        return response()->download($this->getLogFilePath($filename), basename($filename));
+    }
+
     public function deleteLogFile(string $filename): bool
     {
         throw_if($filename === '' || $filename === '0', InvalidArgumentException::class, 'Filename cannot be empty.');

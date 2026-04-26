@@ -87,25 +87,287 @@ class LogParserService
 
         $message = $matches[4] ?? '';
 
+        [$cleanMessage, $context, $longContext] = $this->extractInlineJsonContext($message);
+
         return [
             'timestamp' => $matches[1] ?? '',
             'environment' => $matches[2] ?? self::DEFAULT_ENVIRONMENT,
             'level' => mb_strtolower($matches[3] ?? 'info'),
-            'message' => $message,
+            'message' => $cleanMessage,
             'extra' => '',
-            'context' => $this->extractContext($message),
+            'context' => $context,
+            'longContext' => $longContext,
+            'stackTrace' => '',
         ];
+    }
+
+    /**
+     * Depth-aware top-level walker: finds the inline JSON object inside a
+     * Laravel default-format message line and extracts ONLY top-level keys.
+     * Handles unclosed JSON (e.g. when [stacktrace] is appended without closing).
+     *
+     * @return array{0: string, 1: array<string,string>, 2: array<string,mixed>}
+     */
+    protected function extractInlineJsonContext(string $message): array
+    {
+        // Find the inline context blob — Laravel separates it with " {"
+        $pos = mb_strpos($message, ' {"');
+
+        if ($pos === FALSE) {
+            return [$message, [], []];
+        }
+
+        $cleanMessage = mb_trim(mb_substr($message, 0, $pos));
+        $i = $pos + 1;
+        $len = strlen($message);
+
+        if ($i >= $len || $message[$i] !== '{') {
+            return [$cleanMessage, [], []];
+        }
+
+        $i++; // skip opening '{'
+        $depth = 1;
+
+        $allowed = [
+            'tenant', 'channel', 'env', 'environment', 'url', 'method',
+            'userid', 'user_id', 'user', 'request_id', 'requestid',
+            'ip', 'session_id', 'sessionid', 'route', 'guard',
+        ];
+
+        $badges = [];
+        $longContext = [];
+
+        while ($i < $len && $depth > 0) {
+            // skip whitespace and commas
+            while ($i < $len && (ctype_space($message[$i]) || $message[$i] === ',')) {
+                $i++;
+            }
+
+            if ($i >= $len) {
+                break;
+            }
+
+            if ($message[$i] === '}') {
+                $depth--;
+                $i++;
+
+                break;
+            }
+
+            // expect a string key
+            if ($message[$i] !== '"') {
+                break;
+            }
+
+            [$key, $i] = $this->readJsonString($message, $i);
+
+            if ($key === NULL) {
+                break;
+            }
+
+            // skip whitespace and ':'
+            while ($i < $len && (ctype_space($message[$i]) || $message[$i] === ':')) {
+                $i++;
+            }
+
+            if ($i >= $len) {
+                break;
+            }
+
+            // read value
+            [$value, $i, $isComplex] = $this->readJsonValue($message, $i);
+
+            $lkey = mb_strtolower($key);
+
+            if ($lkey === 'exception') {
+                continue;
+            }
+
+            if ($isComplex && is_array($value)) {
+                if ($value !== []) {
+                    $label = $lkey === 'input' ? 'Request Input' : $key;
+                    $longContext[$label] = $value;
+                }
+
+                continue;
+            }
+
+            if (! $isComplex) {
+                $str = $value === NULL ? '' : (string) $value;
+
+                if (in_array($lkey, $allowed, TRUE) && $str !== '' && mb_strlen($str) <= 100) {
+                    $badges[$key] = $str;
+                } elseif (mb_strlen($str) > 100) {
+                    $longContext[$key] = $str;
+                }
+            }
+        }
+
+        return [$cleanMessage, $badges, $longContext];
+    }
+
+    /**
+     * Reads a JSON-style string starting at $i (which must point at '"').
+     * Returns [decoded string|null, new position].
+     *
+     * @return array{0: ?string, 1: int}
+     */
+    private function readJsonString(string $s, int $i): array
+    {
+        $len = strlen($s);
+
+        if ($i >= $len || $s[$i] !== '"') {
+            return [NULL, $i];
+        }
+
+        $i++;
+        $out = '';
+
+        while ($i < $len) {
+            $ch = $s[$i];
+
+            if ($ch === '\\' && $i + 1 < $len) {
+                $next = $s[$i + 1];
+                $out .= match ($next) {
+                    'n'     => "\n",
+                    't'     => "\t",
+                    'r'     => "\r",
+                    '"'     => '"',
+                    '\\'    => '\\',
+                    '/'     => '/',
+                    default => $next,
+                };
+                $i += 2;
+            } elseif ($ch === '"') {
+                return [$out, $i + 1];
+            } else {
+                $out .= $ch;
+                $i++;
+            }
+        }
+
+        return [NULL, $i];
+    }
+
+    /**
+     * Reads a JSON value (string, number, bool, null, array, object).
+     * Returns [value, new position, isComplex] where isComplex is TRUE for arrays/objects.
+     *
+     * @return array{0: mixed, 1: int, 2: bool}
+     */
+    private function readJsonValue(string $s, int $i): array
+    {
+        $len = strlen($s);
+
+        if ($i >= $len) {
+            return [NULL, $i, FALSE];
+        }
+
+        $ch = $s[$i];
+
+        // String
+        if ($ch === '"') {
+            [$str, $next] = $this->readJsonString($s, $i);
+
+            return [$str, $next, FALSE];
+        }
+
+        // Object or array — find balanced span and decode
+        if ($ch === '{' || $ch === '[') {
+            $open = $ch;
+            $close = $ch === '{' ? '}' : ']';
+            $start = $i;
+            $depth = 0;
+            $inStr = FALSE;
+            $esc = FALSE;
+
+            while ($i < $len) {
+                $c = $s[$i];
+
+                if ($esc) {
+                    $esc = FALSE;
+                    $i++;
+
+                    continue;
+                }
+
+                if ($c === '\\' && $inStr) {
+                    $esc = TRUE;
+                    $i++;
+
+                    continue;
+                }
+
+                if ($c === '"') {
+                    $inStr = ! $inStr;
+                    $i++;
+
+                    continue;
+                }
+
+                if (! $inStr) {
+                    if ($c === $open) {
+                        $depth++;
+                    } elseif ($c === $close) {
+                        $depth--;
+
+                        if ($depth === 0) {
+                            $i++;
+
+                            break;
+                        }
+                    }
+                }
+
+                $i++;
+            }
+
+            $jsonStr = substr($s, $start, $i - $start);
+            $decoded = json_decode($jsonStr, TRUE);
+
+            return [is_array($decoded) ? $decoded : [], $i, TRUE];
+        }
+
+        // Number, bool, null, or bare token
+        $start = $i;
+
+        while ($i < $len && $s[$i] !== ',' && $s[$i] !== '}' && $s[$i] !== ']' && ! ctype_space($s[$i])) {
+            $i++;
+        }
+
+        $tok = substr($s, $start, $i - $start);
+
+        $val = match (TRUE) {
+            $tok === 'true'  => TRUE,
+            $tok === 'false' => FALSE,
+            $tok === 'null'  => NULL,
+            is_numeric($tok) => $tok + 0,
+            default          => $tok,
+        };
+
+        return [$val, $i, FALSE];
     }
 
     protected function createLogEntry(array $data): LogEntry
     {
+        $extra = mb_trim($data['extra']);
+        $stackTrace = $data['stackTrace'] ?? '';
+
+        // For standard (non-JSON) log entries, the entire extra IS the stack trace
+        if ($stackTrace === '' && $extra !== '') {
+            $stackTrace = $extra;
+            $extra = '';
+        }
+
         return new LogEntry(
             timestamp: $data['timestamp'],
             environment: $data['environment'],
             level: $data['level'],
             message: $data['message'],
-            extra: mb_trim($data['extra']),
+            extra: $extra,
             context: $data['context'] ?? [],
+            longContext: $data['longContext'] ?? [],
+            stackTrace: $stackTrace,
         );
     }
 
@@ -124,13 +386,17 @@ class LogParserService
             return NULL;
         }
 
+        [$stackTrace, $longContext] = $this->buildJsonStructuredExtra($decoded);
+
         return [
             'timestamp' => $this->normalizeJsonTimestamp($decoded['datetime'] ?? ''),
             'environment' => $decoded['channel'] ?? self::DEFAULT_ENVIRONMENT,
             'level' => mb_strtolower($decoded['level_name']),
             'message' => $decoded['message'],
-            'extra' => $this->buildJsonExtra($decoded),
+            'extra' => '',
             'context' => $this->extractJsonContextBadges($decoded['context'] ?? []),
+            'longContext' => $longContext,
+            'stackTrace' => $stackTrace,
         ];
     }
 
@@ -153,16 +419,25 @@ class LogParserService
             static fn (mixed $v): string => (string) $v,
             array_filter(
                 array_diff_key($context, array_flip($skip)),
-                static fn (mixed $v): bool => is_scalar($v) || $v === NULL,
+                static fn (mixed $v): bool => (is_scalar($v) || $v === NULL) && mb_strlen((string) $v) <= 80,
             ),
         );
     }
 
-    protected function buildJsonExtra(array $decoded): string
+    /**
+     * Returns [stackTrace, longContext] for a JSON log entry.
+     * stackTrace is the formatted exception/stack trace string.
+     * longContext is a keyed array of long/complex values to show as expandable sections.
+     *
+     * @return array{string, array<string,mixed>}
+     */
+    protected function buildJsonStructuredExtra(array $decoded): array
     {
-        $parts = [];
+        $stackTrace = '';
+        $longContext = [];
         $context = $decoded['context'] ?? [];
 
+        // Build exception / stack trace string
         if (isset($context['exception']) && is_array($context['exception'])) {
             $exc = $context['exception'];
             $lines = [];
@@ -172,7 +447,15 @@ class LogParserService
             }
 
             if (isset($exc['file'])) {
-                $lines[] = 'at ' . $exc['file'];
+                $lines[] = 'at ' . $exc['file'] . (isset($exc['line']) ? ':' . $exc['line'] : '');
+            }
+
+            if (isset($exc['trace']) && is_array($exc['trace'])) {
+                foreach ($exc['trace'] as $i => $frame) {
+                    $fn = ($frame['class'] ?? '') . ($frame['type'] ?? '') . ($frame['function'] ?? '');
+                    $loc = isset($frame['file']) ? $frame['file'] . (isset($frame['line']) ? ':' . $frame['line'] : '') : '[internal]';
+                    $lines[] = "  #{$i} {$loc}: {$fn}()";
+                }
             }
 
             if (isset($exc['previous']) && is_array($exc['previous'])) {
@@ -180,55 +463,37 @@ class LogParserService
                 $lines[] = "\nCaused by: " . ($prev['class'] ?? '') . ': ' . ($prev['message'] ?? '');
 
                 if (isset($prev['file'])) {
-                    $lines[] = 'at ' . $prev['file'];
+                    $lines[] = 'at ' . $prev['file'] . (isset($prev['line']) ? ':' . $prev['line'] : '');
                 }
             }
 
             if ($lines !== []) {
-                $parts[] = implode("\n", $lines);
+                $stackTrace = implode("\n", $lines);
             }
         }
 
+        // Request input
         if (isset($context['input']) && is_array($context['input']) && $context['input'] !== []) {
-            $parts[] = "Request Input:\n" . json_encode(
-                $context['input'],
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            );
+            $longContext['Request Input'] = $context['input'];
         }
 
-        if (isset($decoded['extra']) && is_array($decoded['extra']) && $decoded['extra'] !== []) {
-            $parts[] = "Extra:\n" . json_encode(
-                $decoded['extra'],
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            );
-        }
-
-        return implode("\n\n", $parts);
-    }
-
-    protected function extractContext(string $message): array
-    {
-        $context = [];
-
-        if (! preg_match_all('/"([^"]+)":("([^"]*)"|(\d+)|true|false|null)/', $message, $matches, PREG_SET_ORDER)) {
-            return $context;
-        }
-
-        foreach ($matches as $match) {
-            $key = $match[1];
-
-            if ($key === 'exception') {
-                break;
+        // Any other complex (non-scalar) context keys
+        foreach ($context as $key => $value) {
+            if (in_array($key, ['exception', 'input'], TRUE)) {
+                continue;
             }
 
-            $context[$key] = match (TRUE) {
-                isset($match[4]) && $match[4] !== '' && $match[4] !== '0' => $match[4],
-                isset($match[3]) && $match[3] !== '' => $match[3],
-                default => mb_trim($match[2], '"'),
-            };
+            if (is_array($value) || (is_string($value) && mb_strlen($value) > 80)) {
+                $longContext[$key] = $value;
+            }
         }
 
-        return $context;
+        // Extra field from JSON (e.g. monolog extra)
+        if (isset($decoded['extra']) && is_array($decoded['extra']) && $decoded['extra'] !== []) {
+            $longContext['Extra'] = $decoded['extra'];
+        }
+
+        return [$stackTrace, $longContext];
     }
 
     protected function matchesSearchTerm(LogEntry $logEntry, ?string $searchTerm): bool
