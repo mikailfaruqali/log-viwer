@@ -1,8 +1,8 @@
 # 📋 Snawbar Log Viewer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D7.4-blue.svg)](https://php.net)
-[![Laravel](https://img.shields.io/badge/Laravel-%3E%3D5.0-red.svg)](https://laravel.com)
+[![PHP Version](https://img.shields.io/badge/PHP-%5E8.3-blue.svg)](https://php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-11%2B-red.svg)](https://laravel.com)
 
 A modern, elegant, and feature-rich log viewer for Laravel applications. Experience a beautiful glassmorphism-inspired interface that makes viewing and managing your application logs both intuitive and visually appealing.
 
@@ -23,11 +23,15 @@ A modern, elegant, and feature-rich log viewer for Laravel applications. Experie
 - **File Status**: Visual indicators for active/selected files
 
 ### 📊 **Log Parsing & Display**
-- **Intelligent Parsing**: Advanced regex-based log parsing that handles Laravel's log format
+- **Dual Format Support**: Parses both Laravel's classic text format and Monolog's JSON format
+- **JSON Log Support**: Fully supports structured JSON logs — reads `message`, `level_name`, `channel`, `datetime`, `context`, and `extra` fields
 - **Multi-line Support**: Properly handles stack traces and multi-line log entries
 - **Log Levels**: Color-coded log levels (debug, info, notice, warning, error, critical, alert, emergency)
-- **Timestamp Formatting**: Human-readable timestamp display
+- **Timestamp Formatting**: Human-readable timestamp display with ISO 8601 normalization
 - **Environment Detection**: Automatically detects and displays the environment (production, local, etc.)
+- **Context Badges**: Displays inline context badges (tenant, url, method, userId) from JSON logs
+- **Exception Details**: Shows full exception class, message, file location, and chained `Caused by` exceptions
+- **Request Input**: Renders request input payload from JSON logs in a readable pre-formatted block
 
 ### 🔍 **Enhanced Viewing Experience**
 - **Expandable Entries**: Click to expand log entries and view full messages and stack traces
@@ -57,6 +61,8 @@ A modern, elegant, and feature-rich log viewer for Laravel applications. Experie
 - **Clean Architecture**: Well-structured codebase following Laravel conventions
 
 ## 🚀 Installation
+
+**Requirements: PHP 8.3+ and Laravel 11+**
 
 Install the package via Composer:
 
@@ -255,12 +261,37 @@ Configure different access rules per environment:
 
 ## 🧪 Log Format Support
 
-The package supports Laravel's default log format and handles:
+The package supports both Laravel log formats simultaneously in the same file:
 
-- **Standard Laravel Logs**: `[timestamp] environment.LEVEL: message`
-- **Stack Traces**: Multi-line error details and backtraces
-- **Context Data**: Additional context information in log entries
-- **Custom Formats**: Extensible parsing for custom log formats
+### Classic Text Format
+```
+[2026-04-26 17:40:17] local.ERROR: Something went wrong {"key":"value"}
+#0 /path/to/file.php(42): SomeClass->method()
+```
+
+### JSON Format (Monolog `JsonFormatter`)
+```json
+{"message":"Call to undefined method","context":{"tenant":"enterprise.test","url":"https://app.test/dashboard","method":"GET","input":[],"userId":1,"exception":{"class":"Error","message":"Call to undefined method","code":0,"file":"/app/Http/Controllers/DashboardController.php:16"}},"level":400,"level_name":"ERROR","channel":"local","datetime":"2026-04-26T17:40:17.031080+03:00","extra":{}}
+```
+
+To use the JSON formatter in your Laravel application, configure your `config/logging.php`:
+
+```php
+use Monolog\Formatter\JsonFormatter;
+
+'channels' => [
+    'stack' => [
+        'driver' => 'stack',
+        'channels' => ['single'],
+    ],
+    'single' => [
+        'driver'    => 'single',
+        'path'      => storage_path('logs/laravel.log'),
+        'level'     => env('LOG_LEVEL', 'debug'),
+        'formatter' => JsonFormatter::class,
+    ],
+],
+```
 
 ### Supported Log Levels
 

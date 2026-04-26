@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Snawbar\LogViewer\Http\Controllers;
 
 use Illuminate\Contracts\View\View;
@@ -14,17 +16,10 @@ use Throwable;
 
 class LogViewerController extends Controller
 {
-    protected $logFileService;
-
-    protected $logParserService;
-
     public function __construct(
-        LogFileService $logFileService,
-        LogParserService $logParserService
-    ) {
-        $this->logFileService = $logFileService;
-        $this->logParserService = $logParserService;
-    }
+        protected readonly LogFileService $logFileService,
+        protected readonly LogParserService $logParserService,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -48,7 +43,7 @@ class LogViewerController extends Controller
         try {
             $this->logFileService->deleteLogFile($filename);
 
-            return redirect()->route('log-viewer.index')
+            return to_route('log-viewer.index')
                 ->with('success', sprintf("Log file '%s' has been deleted successfully.", $filename));
         } catch (Throwable $throwable) {
             return back()->with('error', sprintf('Failed to delete log file: %s', $throwable->getMessage()));

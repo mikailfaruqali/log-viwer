@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Snawbar\LogViewer\Services;
 
 use Illuminate\Support\Collection;
@@ -9,7 +11,7 @@ use RuntimeException;
 
 class LogFileService
 {
-    protected string $logPath;
+    protected readonly string $logPath;
 
     public function __construct()
     {
@@ -34,7 +36,7 @@ class LogFileService
     {
         $path = $this->getLogFilePath($filename);
 
-        if (!$this->logFileExists($filename)) {
+        if (! $this->logFileExists($filename)) {
             throw new InvalidArgumentException(sprintf("Log file '%s' does not exist.", $filename));
         }
 
@@ -43,17 +45,15 @@ class LogFileService
 
     public function deleteLogFile(string $filename): bool
     {
-        if ($filename === '' || $filename === '0') {
-            throw new InvalidArgumentException('Filename cannot be empty.');
-        }
+        throw_if($filename === '' || $filename === '0', InvalidArgumentException::class, 'Filename cannot be empty.');
 
-        if (!$this->logFileExists($filename)) {
+        if (! $this->logFileExists($filename)) {
             throw new InvalidArgumentException(sprintf("Log file '%s' does not exist.", $filename));
         }
 
         $path = $this->getLogFilePath($filename);
 
-        if (!File::delete($path)) {
+        if (! File::delete($path)) {
             throw new RuntimeException(sprintf("Failed to delete log file '%s'.", $filename));
         }
 
@@ -69,8 +69,8 @@ class LogFileService
 
     protected function isValidLogFile(string $filename): bool
     {
-        return substr($filename, -4) === '.log' &&
-               File::isReadable($this->getLogFilePath($filename));
+        return str_ends_with($filename, '.log')
+            && File::isReadable($this->getLogFilePath($filename));
     }
 
     protected function getFileModificationTime(string $filename): int

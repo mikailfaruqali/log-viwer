@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Snawbar\LogViewer\Http\Requests;
 
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\File;
 
@@ -19,9 +22,9 @@ class DeleteLogFileRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                function ($attribute, $value, $fail) {
+                function (string $attribute, mixed $value, Closure $fail): void {
                     if (! File::exists(storage_path('logs/' . $value))) {
-                        $fail("The selected log file does not exist.");
+                        $fail('The selected log file does not exist.');
                     }
                 },
             ],
@@ -32,7 +35,6 @@ class DeleteLogFileRequest extends FormRequest
     {
         return [
             'file.required' => 'Please select a log file to delete.',
-            'file.regex' => 'Invalid log file name format.',
             'file.exists' => 'The selected log file does not exist.',
         ];
     }
